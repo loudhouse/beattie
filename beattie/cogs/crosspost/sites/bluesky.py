@@ -10,7 +10,6 @@ from beattie.utils.exceptions import ResponseError
 from .site import Site
 
 if TYPE_CHECKING:
-    from ..cog import Crosspost
     from ..context import CrosspostContext
     from ..queue import FragmentQueue
 
