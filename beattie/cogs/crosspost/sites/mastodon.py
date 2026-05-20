@@ -288,7 +288,11 @@ class Mastodon(Site):
             pp = None
             if file["type"] == "image/apng":
                 pp = ffmpeg_gif_pp
-            queue.push_file(file["url"], filename=file["name"], postprocess=pp)
+            filename = file["name"]
+            if "." not in filename:
+                ext = file["type"].rpartition("/")[2]
+                filename = f"{filename}.{ext}"
+            queue.push_file(file["url"], filename=filename, postprocess=pp)
 
         if text := data["text"]:
             queue.push_text(text)
