@@ -57,7 +57,7 @@ class Gelbooru(Site):
 
         queue.author = " ".join(sorted(tag["name"] for tag in tags if tag["type"] == 1))
 
-        queue.push_file(post["file_url"])
+        queue.push_file(post["file_url"].replace(".com/images", ".com//images"))
 
         params["s"] = "note"
         del params["json"]
