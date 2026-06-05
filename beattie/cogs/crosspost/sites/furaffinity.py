@@ -27,7 +27,7 @@ class FurAffinity(Site):
     )
 
     async def handler(self, _ctx: CrosspostContext, queue: FragmentQueue, sub_id: str):
-        link = f"https://www.fxraffinity.net/view/{sub_id}?full"
+        link = f"https://www.xfuraffinity.net/view/{sub_id}?full"
         async with self.cog.get(
             link,
             error_for_status=False,
