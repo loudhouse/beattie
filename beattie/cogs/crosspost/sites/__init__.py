@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .bluesky import Bluesky
 from .danbooru import Danbooru
+from .derpibooru import Derpibooru
 from .e621 import E621
 from .exhentai import Exhentai
 from .fanbox import Fanbox
@@ -33,6 +34,7 @@ __all__ = ["SITES", "Site"]
 SITES: list[type[Site]] = [
     Bluesky,
     Danbooru,
+    Derpibooru,
     E621,
     Exhentai,
     Fanbox,
