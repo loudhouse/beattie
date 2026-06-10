@@ -91,7 +91,15 @@ if TYPE_CHECKING:
         },
     )
 
-    Embed = RecordEmbed | ImagesEmbed | VideoEmbed | RecordWithMediaEmbed
+    GalleryEmbed = TypedDict(
+        "GalleryEmbed",
+        {
+            "$type": Literal["app.bsky.embed.gallery"],
+            "items": list[ImageContainer],
+        },
+    )
+
+    Embed = RecordEmbed | ImagesEmbed | VideoEmbed | RecordWithMediaEmbed | GalleryEmbed
 
     Post = TypedDict(
         "Post",
@@ -186,6 +194,8 @@ class Bluesky(Site):
                         video = media["video"]
                     case "app.bsky.embed.images":
                         images = media["images"]
+            case "app.bsky.embed.gallery":
+                images = embed["items"]
 
         if not (images or video):
             return
