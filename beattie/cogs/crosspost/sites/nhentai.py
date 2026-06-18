@@ -49,12 +49,12 @@ class Nhentai(Site):
         }
 
     async def load(self):
-        async with self.cog.get(API_FMT.format("cdn")) as resp:
+        async with self.get(API_FMT.format("cdn")) as resp:
             data: Cdn = resp.json()
         self.image_servers = data["image_servers"]
 
     async def handler(self, _ctx: CrosspostContext, queue: FragmentQueue, gal_id: str):
-        async with self.cog.get(API_FMT.format(f"galleries/{gal_id}")) as resp:
+        async with self.get(API_FMT.format(f"galleries/{gal_id}")) as resp:
             data: Response = resp.json()
 
         servers = cycle(self.image_servers)

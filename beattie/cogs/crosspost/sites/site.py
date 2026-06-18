@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import re
@@ -44,3 +44,6 @@ class Site(ABC):
 
     async def unload(self) -> None:
         pass
+
+    def get(self, *urls: str, **kwargs: Any):
+        return self.cog.get(*urls, site=self.name, **kwargs)

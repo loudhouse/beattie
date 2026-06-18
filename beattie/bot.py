@@ -156,7 +156,7 @@ class Shared:
 class BeattieBot(Bot):
     """A very cute robot boy"""
 
-    command_ignore = (commands.CommandNotFound, commands.CheckFailure)
+    command_ignore = ()
     general_ignore = (ConnectionResetError,)
 
     http: HTTPClient

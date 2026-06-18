@@ -99,6 +99,7 @@ CONFIG = "config/crosspost/mastodon.toml"
 class Mastodon(Site):
     name = "mastodon"
     pattern = re.compile(r"(https?://([^\s/]+)/(?:\S+/)+([\w-]+))(?:[\s>/)]|$)")
+    cooldown = None
 
     auth: dict[str, dict[str, str]]
     whitelist: dict[str, str]
@@ -132,14 +133,14 @@ class Mastodon(Site):
         self.dispatch["bridgy-fed"] = self.do_nothing
 
     async def sniff(self, domain: str) -> str:
-        async with self.cog.get(
+        async with self.get(
             f"https://{domain}/.well-known/nodeinfo",
         ) as resp:
             info: WellKnown = resp.json()
 
         link = info["links"][0]["href"]
 
-        async with self.cog.get(link) as resp:
+        async with self.get(link) as resp:
             data: NodeInfo = resp.json()
 
         return data["software"]["name"]
@@ -186,6 +187,23 @@ class Mastodon(Site):
         site: str,
         post_id: str,
     ):
+        
+        # --- DOMAIN ALIAS CARVEOUT ---
+        aliases = {
+            "bnet": "baraag.net",
+            "b.net": "baraag.net"
+        }
+        
+        site_lower = site.lower()
+        if site_lower in aliases:
+            real_domain = aliases[site_lower]
+            # Replace the shorthand domain in the original link with the real one
+            link = link.replace(f"://{site}", f"://{real_domain}", 1)
+            site = real_domain
+            # Update the queue link so Discord renders the final hyperlink correctly
+            queue.link = link
+        # -----------------------------
+
         info = await self.cog.tldextract(link)
         domain = f"{info.domain}.{info.suffix}"
         if sub := info.subdomain:
@@ -221,7 +239,7 @@ class Mastodon(Site):
     ):
         api_url = MASTO_API_FMT.format(site, post_id)
 
-        async with self.cog.get(api_url, headers=headers) as resp:
+        async with self.get(api_url, headers=headers) as resp:
             post: MastodonResponse = resp.json()
 
         images = post["media_attachments"]
@@ -271,7 +289,7 @@ class Mastodon(Site):
         url = MISSKEY_API_FMT.format(site)
         body = json.dumps({"noteId": post_id}).encode("utf-8")
 
-        async with self.cog.get(
+        async with self.get(
             url,
             method="POST",
             data=body,
@@ -308,7 +326,7 @@ class Mastodon(Site):
     ):
         api_url = PEERTUBE_API_FMT.format(site, post_id)
 
-        async with self.cog.get(api_url, headers=headers) as resp:
+        async with self.get(api_url, headers=headers) as resp:
             post: PeertubeResponse = resp.json()
         if post["isLive"]:
             return

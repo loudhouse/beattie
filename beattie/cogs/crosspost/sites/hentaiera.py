@@ -30,7 +30,7 @@ class HentaiEra(Site):
         queue: FragmentQueue,
         link: str,
     ):
-        async with self.cog.get(link) as resp:
+        async with self.get(link) as resp:
             root = html.document_fromstring(resp.content)
 
         base = root.xpath("//img[@data-src]")[0].get("data-src").rpartition("/")[0]

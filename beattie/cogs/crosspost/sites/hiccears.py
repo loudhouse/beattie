@@ -48,7 +48,7 @@ class Hiccears(Site):
         self.headers = await aload("config/crosspost/hiccears.toml")
 
     async def handler(self, _ctx: CrosspostContext, queue: FragmentQueue, link: str):
-        async with self.cog.get(
+        async with self.get(
             link,
             headers=self.headers,
             use_browser_ua=True,
@@ -85,7 +85,7 @@ class Hiccears(Site):
 
                 if next_page := root.xpath(NEXT_SELECTOR):
                     next_url = f"https://{resp.url.host}{next_page[0].get('href')}"
-                    async with self.cog.get(
+                    async with self.get(
                         next_url,
                         headers=self.headers,
                         use_browser_ua=True,

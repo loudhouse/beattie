@@ -146,7 +146,7 @@ class Bluesky(Site):
             pds = "https://bsky.social"
 
         xrpc_url = POST_FMT.format(pds, repo, rkey)
-        async with self.cog.get(xrpc_url) as resp:
+        async with self.get(xrpc_url) as resp:
             data: PostResponse = resp.json()
 
         post = data["value"]
@@ -164,7 +164,7 @@ class Bluesky(Site):
             qpds = await self.get_pds(qdid)
 
             xrpc_url = POST_FMT.format(qpds, qdid, qrkey)
-            async with self.cog.get(xrpc_url) as resp:
+            async with self.get(xrpc_url) as resp:
                 data: PostResponse = resp.json()
 
             post = data["value"]
@@ -176,7 +176,7 @@ class Bluesky(Site):
             url = PROFILE_FMT.format(qpds, qdid)
             if not url.startswith("http"):
                 url = f"https://{url}"
-            async with self.cog.get(url) as resp:
+            async with self.get(url) as resp:
                 pdata: ProfileResponse = resp.json()
             qname = pdata["handle"]
 
@@ -237,7 +237,7 @@ class Bluesky(Site):
                 queue.push_text(text)
 
     async def get_pds(self, did: str) -> str:
-        async with self.cog.get(f"https://plc.directory/{did}") as resp:
+        async with self.get(f"https://plc.directory/{did}") as resp:
             info: PlcDirectory = resp.json()
         service = find(
             lambda svc: svc["type"] == "AtprotoPersonalDataServer",
@@ -252,7 +252,7 @@ class Bluesky(Site):
     async def get_did(self, repo: str) -> str | None:
         url = HANDLE_FMT.format("https://public.api.bsky.app", repo)
         try:
-            async with self.cog.get(url) as resp:
+            async with self.get(url) as resp:
                 data: HandleResponse = resp.json()
         except ResponseError:
             return None

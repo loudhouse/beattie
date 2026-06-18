@@ -13,7 +13,8 @@ class BHelp(MinimalHelpCommand):
         await super().send_bot_help(mapping)
         if ctx := self.context:
             await ctx.send(
-                "Join the support server for more help: discord.gg/HKmAadu5sP",
+                "Wexlercord bot https://github.com/loudhouse/beattie\n"
+                "Based on beattie by BeatButton et al https://github.com/BeatButton/beattie"
             )
 
     def add_subcommand_formatting(self, command: Command):

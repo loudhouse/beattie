@@ -3,7 +3,9 @@ from __future__ import annotations
 import asyncio
 import copy
 import logging
+import random
 import re
+import string
 from datetime import datetime
 from itertools import groupby
 from sys import getsizeof
@@ -45,6 +47,11 @@ from .translator import (
     Translator,
 )
 
+try:
+    from beattie.utils.contextmanagers import ResponseError
+except ImportError:
+    ResponseError = Exception
+
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
@@ -83,6 +90,44 @@ if TYPE_CHECKING:
 ConfigTarget = GuildMessageable | CategoryChannel
 
 QUEUE_CACHE_SIZE: int = 1 * GB
+
+# Image hosts occasionally return a 200 OK with a truncated/empty body
+# (a CDN glitch, not an HTTP error), which the normal status-code-based
+# retry logic in ProxyGet/get doesn't catch. This is how many *additional*
+# attempts cog.save() makes when that happens before giving up.
+EMPTY_DOWNLOAD_RETRIES = 2
+
+
+class ProxyGet(get):
+    def __init__(self, cog: Crosspost, *urls, use_proxy: bool = False, **kwargs):
+        super().__init__(cog.session, *urls, **kwargs)
+        self.cog = cog
+        self.use_proxy = use_proxy
+
+    async def _aenter_inner(self) -> httpx.Response:
+        url = self.urls[self.index]
+        kwargs = self.kwargs.copy()
+        proxy_info = None
+        
+        if self.use_proxy and self.cog.proxies:
+            p = random.choice(self.cog.proxies)
+            if p["type"] == "smartproxy":
+                s = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
+                proxy_info = f"http://{p['user']}-session-{s}:{p['password']}@{p['endpoint']}"
+        
+        kwargs.pop("proxies", None)
+
+        if proxy_info:
+            transport = httpx.AsyncHTTPTransport(proxy=proxy_info)
+            async with httpx.AsyncClient(transport=transport, follow_redirects=True) as client:
+                self.resp = await client.request(self.method, url, **kwargs)
+        else:
+            self.resp = await self.session.request(self.method, url, **kwargs)
+
+        if self.error_for_status and self.resp.status_code not in range(200, 300):
+            await self.resp.aclose()
+            raise ResponseError(code=self.resp.status_code, url=str(self.resp.url))
+        return self.resp
 
 
 def item_priority(item: Fragment):
@@ -138,6 +183,16 @@ class Crosspost(Cog):
 
         self.fs_solver_url = None
         self.fs_proxy_url = None
+        self.proxies = []
+        self.proxy_enabled = set()
+
+        try:
+            with open("config/crosspost/proxy.toml") as fp:
+                data = toml.load(fp)
+                self.proxies = data.get("proxies", [])
+                self.proxy_enabled = set(data.get("enabled", []))
+        except FileNotFoundError:
+            pass
 
         try:
             with open("config/crosspost/flaresolverr.toml") as fp:
@@ -226,7 +281,7 @@ class Crosspost(Cog):
 
         self._tldextract = TLDExtract()
         self.logger = logging.getLogger(__name__)
-        self.sites = [cls(self) for cls in SITES]
+        self.sites = sorted([cls(self) for cls in SITES], key=lambda s: s.name == "mastodon")
         self.cache_lock = asyncio.Lock()
 
     async def cog_load(self):
@@ -255,15 +310,21 @@ class Crosspost(Cog):
         method: str = "GET",
         use_browser_ua: bool = False,
         session: httpx.AsyncClient = None,
+        site: str | Site | None = None,
         **kwargs: Any,
     ) -> get:
+        site_name = site if isinstance(site, str) else (site.name if site else None)
+        use_proxy = False
+        if site_name and site_name in self.proxy_enabled:
+            use_proxy = True
+
         if use_browser_ua:
             kwargs["headers"] = {
                 **(kwargs.get("headers") or {}),
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0)"
                 " Gecko/20100101 Firefox/141.0",
             }
-        return get(session or self.session, *urls, method=method, **kwargs)
+        return ProxyGet(self, *urls, method=method, use_proxy=use_proxy, **kwargs)
 
     def flaresolverr(self) -> FlareSolverr:
         if self.fs_solver_url is None or self.fs_proxy_url is None:
@@ -282,15 +343,33 @@ class Crosspost(Cog):
     ) -> tuple[bytes, str | None]:
         headers = headers or {}
         filename = None
-        async with self.get(
-            *img_urls,
-            use_browser_ua=use_browser_ua,
-            headers=headers,
-        ) as resp:
-            if disp := resp.headers.get("Content-Disposition"):
-                _, params = aiohttp.multipart.parse_content_disposition(disp)
-                filename = params.get("filename")
-            return resp.content, filename
+        content = b""
+
+        for attempt in range(EMPTY_DOWNLOAD_RETRIES + 1):
+            async with self.get(
+                *img_urls,
+                use_browser_ua=use_browser_ua,
+                headers=headers,
+            ) as resp:
+                if disp := resp.headers.get("Content-Disposition"):
+                    _, params = aiohttp.multipart.parse_content_disposition(disp)
+                    filename = params.get("filename")
+                content = resp.content
+
+            if content:
+                break
+
+            if attempt < EMPTY_DOWNLOAD_RETRIES:
+                self.logger.warning(
+                    "Got an empty response downloading %s (attempt %d/%d),"
+                    " retrying",
+                    img_urls[0],
+                    attempt + 1,
+                    EMPTY_DOWNLOAD_RETRIES + 1,
+                )
+                await asyncio.sleep(1)
+
+        return content, filename
 
     async def process_links(
         self,
@@ -343,6 +422,8 @@ class Crosspost(Cog):
                     continue
                 if m := site.pattern.search(link):
                     matches.append((m, site))
+            if len(matches) > 1:
+                matches = [(m, s) for m, s in matches if s.name != "mastodon"]
 
             for m, site in matches:
                 name = site.name
@@ -569,6 +650,41 @@ applying it to the guild as a whole."""
                 await ctx.send(f"No such configuration option: {argument}")
             else:
                 await ctx.send("Missing configuration option.")
+
+    @crosspost.group(name="proxy")
+    @is_owner_or(manage_guild=True)
+    async def proxy_cmd(self, ctx: BContext):
+        if ctx.invoked_subcommand is None:
+            await ctx.send("Missing proxy subcommand.")
+
+    @proxy_cmd.command(name="enable")
+    async def proxy_enable(self, ctx: BContext, site: str = commands.param(converter=SiteConverter)):
+        self.proxy_enabled.add(site)
+        await self._save_proxy_config()
+        await ctx.send(f"Proxies enabled for {site}.")
+
+    @proxy_cmd.command(name="disable")
+    async def proxy_disable(self, ctx: BContext, site: str = commands.param(converter=SiteConverter)):
+        self.proxy_enabled.discard(site)
+        await self._save_proxy_config()
+        await ctx.send(f"Proxies disabled for {site}.")
+
+    @proxy_cmd.command(name="list")
+    async def proxy_list(self, ctx: BContext):
+        if self.proxy_enabled:
+            await ctx.send(f"Sites with proxies enabled: {', '.join(sorted(self.proxy_enabled))}")
+        else:
+            await ctx.send("Proxies are disabled globally for all sites.")
+
+    async def _save_proxy_config(self):
+        try:
+            with open("config/crosspost/proxy.toml", "r") as fp:
+                data = toml.load(fp)
+        except FileNotFoundError:
+            data = {}
+        data["enabled"] = list(self.proxy_enabled)
+        with open("config/crosspost/proxy.toml", "w") as fp:
+            toml.dump(data, fp)
 
     @crosspost.command()
     async def auto(
@@ -857,7 +973,7 @@ translate text, or a language name or code to translate text into that language.
         await ctx.send(embed=embed)
 
     @crosspost.command()
-    @commands.is_owner()
+    @is_owner_or(manage_guild=True)
     async def evict(
         self,
         ctx: BContext,
@@ -868,7 +984,7 @@ translate text, or a language name or code to translate text into that language.
 
         if target is not None:
             matches = (
-                (m, site) for site in self.sites if (m := site.pattern.search(target))
+                (m, site) for site in sorted(self.sites, key=lambda s: s.name == "mastodon") if (m := site.pattern.search(target))
             )
 
             for m, site in matches:
@@ -957,3 +1073,4 @@ translate text, or a language name or code to translate text into that language.
     @commands.command(aliases=["_"])
     async def nopost(self, ctx: BContext, *, _: str = ""):
         """Ignore links in the following message."""
+

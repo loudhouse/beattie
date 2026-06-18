@@ -1,0 +1,6 @@
+[[proxies]]
+name = "smartproxy_usa"
+type = "smartproxy"
+user = "user-YOUR_USERNAME-country-us"
+password = "YOUR_PASSWORD_HERE"
+endpoint = "gate.smartproxy.com:7000"

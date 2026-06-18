@@ -91,7 +91,8 @@ ENV/
 
 # Other stuff
 
-config/
+config/**
+!config/**/*example*
 /.vscode/
 /.idea/
 /logs.tar
@@ -101,3 +102,5 @@ config/
 /beattie/cogs/secret.py
 /testing
 /data/sooth
+/aaaa.ps1
+/beattie.txt

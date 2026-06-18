@@ -22,7 +22,7 @@ class Paheal(Site):
 
     async def handler(self, _ctx: CrosspostContext, queue: FragmentQueue, post: str):
         link = f"https://rule34.paheal.net/post/view/{post}"
-        async with self.cog.get(link, use_browser_ua=True) as resp:
+        async with self.get(link, use_browser_ua=True) as resp:
             root = html.document_fromstring(resp.content, self.cog.parser)
 
         img = root.xpath(IMG_SELECTOR)[0]

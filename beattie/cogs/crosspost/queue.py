@@ -79,7 +79,7 @@ class FragmentQueue:
         )
 
     async def _handle(self, ctx: CrosspostContext) -> Self:
-        if (cooldown := self.site.cooldown) and (
+        if (cooldown := getattr(self.site, "cooldown", None)) and (
             timeout := cooldown.update_rate_limit()
         ):
             self.cog.logger.info(
@@ -405,8 +405,19 @@ class FragmentQueue:
                         file_bytes = frag.file_bytes
                         filename = frag.filename
                         if not file_bytes:
-                            msg = "frag.save failed to set file_bytes"
-                            raise RuntimeError(msg)
+                            await send_files()
+                            if frag.can_link:
+                                url = frag.urls[0]
+                                if spoiler:
+                                    url = f"|| {url} ||"
+                                await ctx.send(url)
+                                embedded = True
+                            else:
+                                await ctx.send(
+                                    "Couldn't download this file after"
+                                    " multiple attempts.",
+                                )
+                            continue
                         if frag.pp_bytes is not None and len(frag.pp_bytes) <= limit:
                             file_bytes = frag.pp_bytes
                             filename = frag.pp_filename
@@ -438,3 +449,4 @@ class FragmentQueue:
             await send_text()
 
         return embedded
+

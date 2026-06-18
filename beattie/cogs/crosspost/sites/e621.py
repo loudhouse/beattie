@@ -58,7 +58,7 @@ class E621(Site):
             post_id = f"{int(post_id, 32)}"
         params = {"tags": f"id:{post_id}"}
         api_url = "https://e621.net/posts.json"
-        async with self.cog.get(api_url, params=params, headers=self.headers) as resp:
+        async with self.get(api_url, params=params, headers=self.headers) as resp:
             data: Response = resp.json()
         try:
             post = data["posts"][0]

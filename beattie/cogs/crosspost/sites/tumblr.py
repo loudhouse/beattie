@@ -70,7 +70,7 @@ class Tumblr(Site):
     ):
         link = f"https://tumbex.com/{blog}.tumblr/post/{post_id}"
 
-        async with self.cog.get(link, use_browser_ua=True) as resp:
+        async with self.get(link, use_browser_ua=True) as resp:
             content = resp.content
 
         root = html.document_fromstring(content, self.cog.parser)
@@ -115,7 +115,7 @@ class Tumblr(Site):
                 case "image":
                     url = block["hd"]
                     if url.endswith(".gifv"):
-                        async with self.cog.get(
+                        async with self.get(
                             url,
                             headers={"Range": "bytes=0-2"},
                         ) as resp:

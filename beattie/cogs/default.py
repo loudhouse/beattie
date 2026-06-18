@@ -84,11 +84,12 @@ class Default(Cog):
     @commands.command()
     async def invite(self, ctx: BContext):
         """Get the invite for the bot."""
-        url = (
-            "<https://discordapp.com/oauth2/authorize?"
-            "client_id=1487613116903719033&scope=bot&permissions=274878295104>"
-        )
-        await ctx.send(url.format(ctx.me.id))
+        await ctx.send("The invite command is currently disabled.")
+        # url = (
+        #     "<https://discordapp.com/oauth2/authorize?"
+        #     "client_id=your_client_id&scope=bot&permissions=274878295104>"
+        # )
+        # await ctx.send(url.format(ctx.me.id))
 
 
 async def setup(bot: BeattieBot):

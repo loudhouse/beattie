@@ -1,101 +1,70 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, TypedDict
-
 import toml
-
-from beattie.utils.etc import translate_bbcode
-from beattie.utils.exceptions import ResponseError
-
-from ..database_types import TextLength
+from typing import TYPE_CHECKING
 from .site import Site
 
 if TYPE_CHECKING:
-    from ..cog import Crosspost
     from ..context import CrosspostContext
     from ..queue import FragmentQueue
 
-    class File(TypedDict):
-        file_url_full: str
-        file_url_screen: str
-
-    class Submission(TypedDict):
-        user_id: str
-        files: list[File]
-        title: str
-        description: str
-
-    class Response(TypedDict):
-        submissions: list[Submission]
-
-
-API_FMT = "https://inkbunny.net/api_{}.php"
-
-
 class Inkbunny(Site):
     name = "inkbunny"
-    pattern = re.compile(
-        r"https?://(?:www\.)?inkbunny\.net/"
-        r"(?:s/|submissionview\.php\?id=)(\d+)(?:-p\d+-)?(?:#.*)?",
-    )
+    pattern = re.compile(r"https?://(?:www\.)?inkbunny\.net/(?:s/(\d+)|gallery/.*submissions/(\d+))")
 
-    sid: str
-    login: dict[str, str]
-
-    def __init__(self, cog: Crosspost):
+    def __init__(self, cog):
         super().__init__(cog)
-        with open("config/crosspost/inkbunny.toml") as fp:
-            self.login = toml.load(fp)
+        self.login = {}
+        self.sid = None
 
-    async def load(self):
-        if sid := self.cog.bot.extra.get("crosspost_inkbunny_sid"):
-            self.sid = sid
-        else:
-            url = API_FMT.format("login")
-            async with self.cog.get(url, method="POST", params=self.login) as resp:
-                json = resp.json()
-            self.sid = self.cog.bot.extra["crosspost_inkbunny_sid"] = json["sid"]
-
-    async def handler(self, _ctx: CrosspostContext, queue: FragmentQueue, sub_id: str):
-        url = API_FMT.format("submissions")
-        params = {
-            "sid": self.sid,
-            "submission_ids": sub_id,
-            "show_description": "yes",
-        }
-
-        async with self.cog.get(url, method="POST", params=params) as resp:
-            response: Response = resp.json()
-
-        if not (subs := response["submissions"]):
-            queue.push_text(
-                "Post not found. It may be private.",
-                quote=False,
-                force=True,
-            )
+    async def load(self) -> None:
+        try:
+            with open("config/crosspost/inkbunny.toml") as fp:
+                self.login = toml.load(fp)
+        except FileNotFoundError:
             return
 
-        sub = subs[0]
+        url = "https://inkbunny.net/api_login.php"
+        async with self.get(url, method="POST", params=self.login) as resp:
+            data = resp.json()
+            if "sid" not in data:
+                raise RuntimeError("Inkbunny login failed")
+            self.sid = data["sid"]
 
-        queue.author = sub["user_id"]
-        queue.link = f"https://inkbunny.net/s/{sub_id}"
+    async def handler(
+        self, 
+        ctx: CrosspostContext, 
+        queue: FragmentQueue, 
+        *args: str
+    ) -> None:
+        submission_id = next((a for a in args if a), None)
+        if not submission_id:
+            return
 
-        for file in sub["files"]:
-            full = file["file_url_full"]
-            screen = file["file_url_screen"]
-            try:
-                async with self.cog.get(screen, method="HEAD") as resp:
-                    pass
-            except ResponseError as e:
-                if e.code == 404:
-                    queue.push_file(full)
-            else:
-                queue.push_fallback(full, screen)
-
-        title = sub["title"]
-        description = sub["description"].strip()
-        queue.push_text(title, bold=True)
-        if description:
-            description = translate_bbcode(description)
-            queue.push_text(description, escape=False, length=TextLength.LONG)
+        api_url = "https://inkbunny.net/api_submissions.php"
+        params = {"sid": self.sid, "submission_ids": submission_id}
+        
+        async with self.get(api_url, params=params) as resp:
+            data = resp.json()
+            
+        submission = data.get("submissions", [{}])[0]
+        
+        # 1. Author
+        queue.author = submission.get("username")
+        
+        # 2. Images (Original Size)
+        # The API returns an array of 'files' with 'file_url_full'
+        for file in submission.get("files", []):
+            if url := file.get("file_url_full"):
+                queue.push_file(url, filename=file.get("file_name"))
+            
+        # 3. Title
+        if title := submission.get("title"):
+            queue.push_text(title, bold=True)
+            
+        # 4. Description (Inkbunny API doesn't provide this in this endpoint, 
+        # but you can use keywords or other metadata if needed)
+        # Note: Your raw JSON did not contain a 'description' field.
+            
+        queue.link = f"https://inkbunny.net/s/{submission_id}"

@@ -38,7 +38,7 @@ class Exhentai(Site):
         body = {"method": "gdata", "gidlist": [[int(gal_id), token]], "namespace": 1}
 
         api_url = "https://api.e-hentai.org/api.php"
-        async with self.cog.get(
+        async with self.get(
             api_url,
             method="POST",
             data=json.dumps(body),

@@ -57,7 +57,7 @@ class Imgur(Site):
         is_album = bool(fragment)
         target = "album" if is_album else "image"
 
-        async with self.cog.get(
+        async with self.get(
             f"https://api.imgur.com/3/{target}/{album_id}",
             headers=self.headers,
         ) as resp:

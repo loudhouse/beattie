@@ -44,7 +44,7 @@ class Tiktok(Site):
     ):
         split = urlparse.urlsplit(link)
         link = f"https://tnktok.com{split.path}?addDesc=true"
-        async with self.cog.get(
+        async with self.get(
             link,
             error_for_status=False,
             follow_redirects=False,
@@ -78,7 +78,7 @@ class Tiktok(Site):
             while len(images) == 4:
                 page += 1
                 param = f"{post_id}page{page}"
-                async with self.cog.get(f"{self.API_URL}/{param}") as resp:
+                async with self.get(f"{self.API_URL}/{param}") as resp:
                     data: Response = resp.json()
                 if data["id"] != param:
                     break

@@ -6,6 +6,7 @@ from .derpibooru import Derpibooru
 from .e621 import E621
 from .exhentai import Exhentai
 from .fanbox import Fanbox
+from .fourchan import FourChan
 from .furaffinity import FurAffinity
 from .gelbooru import Gelbooru
 from .hentaiera import HentaiEra
@@ -38,6 +39,7 @@ SITES: list[type[Site]] = [
     E621,
     Exhentai,
     Fanbox,
+    FourChan,
     FurAffinity,
     Gelbooru,
     HentaiEra,

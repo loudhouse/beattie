@@ -39,7 +39,7 @@ class Derpibooru(Site):
         image_id: str,
     ):
         link = API_FMT.format(image_id)
-        async with self.cog.get(link) as resp:
+        async with self.get(link) as resp:
             post: Response = resp.json()
 
         image = post["image"]

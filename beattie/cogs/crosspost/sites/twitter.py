@@ -65,12 +65,18 @@ class Twitter(Site):
     ):
         api_link = f"https://api.{method}.com/status/{tweet_id}"
 
-        async with self.cog.get(
+        async with self.get(
             api_link,
         ) as resp:
             tweet = resp.json()
+            
         if method == "fxtwitter":
-            tweet = tweet["tweet"]
+            if "tweet" in tweet:
+                tweet = tweet["tweet"]
+            elif "error" in tweet or tweet.get("code") != 200:
+                raise RuntimeError(f"fxtwitter returned an error payload: {tweet}")
+            else:
+                raise KeyError(f"fxtwitter JSON missing 'tweet' key. Payload: {tweet}")
 
         if not (media := self.get_media(tweet, method)):
             qkey = {"fxtwitter": "quote", "vxtwitter": "qrt"}[method]
@@ -105,8 +111,8 @@ class Twitter(Site):
                 case "video":
                     queue.push_file(url)
 
-        text: str | None = html_unescape(tweet["text"]) or None
-        qtext: str | None = html_unescape(quote["text"]) if quote else None
+        text: str | None = html_unescape(tweet.get("text", "")) or None
+        qtext: str | None = html_unescape(quote.get("text", "")) if quote else None
         match text, qtext:
             case None, None:
                 pass
