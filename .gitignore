@@ -104,3 +104,4 @@ config/**
 /data/sooth
 /aaaa.ps1
 /beattie.txt
+/beattie_backup*.tar.gz
