@@ -105,3 +105,4 @@ config/**
 /aaaa.ps1
 /beattie.txt
 /beattie_backup*.tar.gz
+/notes.txt
