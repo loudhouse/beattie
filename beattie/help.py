@@ -13,6 +13,7 @@ class BHelp(MinimalHelpCommand):
         await super().send_bot_help(mapping)
         if ctx := self.context:
             await ctx.send(
+		"Want to use this bot or ask for help? https://discord.gg/YJKgCeMDy\n"
                 "Wexlercord bot https://github.com/loudhouse/beattie\n"
                 "Based on beattie by BeatButton et al https://github.com/BeatButton/beattie"
             )
