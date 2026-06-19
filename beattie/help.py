@@ -14,8 +14,8 @@ class BHelp(MinimalHelpCommand):
         if ctx := self.context:
             await ctx.send(
 		"Want to use this bot or ask for help? https://discord.gg/YJKgCeMDy\n"
-                "Wexlercord bot https://github.com/loudhouse/beattie\n"
-                "Based on beattie by BeatButton et al https://github.com/BeatButton/beattie"
+                "Wexlercord bot <https://github.com/loudhouse/beattie>\n"
+                "Based on beattie by BeatButton et al <https://github.com/BeatButton/beattie>"
             )
 
     def add_subcommand_formatting(self, command: Command):
