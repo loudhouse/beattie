@@ -61,7 +61,8 @@ class FurAffinity(Site):
         if data := await self.download_image(url):
             frag = queue.push_file(url)
             frag.file_bytes = data
-            frag.dl_task = asyncio.create_task(asyncio.sleep(0))
+            frag.dl_task = asyncio.get_event_loop().create_future()
+            frag.dl_task.set_result(None)
             if frag.postprocess is not None:
                 await frag.postprocess(frag)
         else:
@@ -98,18 +99,15 @@ class FurAffinity(Site):
         return image, title, description
 
     async def download_image(self, url: str) -> bytes | None:
-        async with self.get(
-            url,
-            use_browser_ua=True,
-            error_for_status=False,
-        ) as resp:
+        if self.cog.proxies:
+            if data := await self.download_via_proxy(url):
+                return data
+
+        async with self.get(url, use_browser_ua=True, error_for_status=False) as resp:
             if resp.status_code == 200:
                 return resp.content
 
-        if not self.cog.proxies:
-            return None
-
-        return await self.download_via_proxy(url)
+        return None
 
     async def download_via_proxy(self, url: str) -> bytes | None:
         proxies = self.cog.proxies
