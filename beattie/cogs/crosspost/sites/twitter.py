@@ -63,13 +63,12 @@ class Twitter(Site):
         tweet_id: str,
         method: Method,
     ):
-        api_link = f"https://api.{method}.com/status/{tweet_id}"
+        i = "/i" if method == "vxtwitter" else ""
+        api_link = f"https://api.{method}.com{i}/status/{tweet_id}"
 
-        async with self.get(
-            api_link,
-        ) as resp:
+        async with self.get(api_link) as resp:
             tweet = resp.json()
-            
+
         if method == "fxtwitter":
             if "tweet" in tweet:
                 tweet = tweet["tweet"]
@@ -101,9 +100,12 @@ class Twitter(Site):
             url = medium["url"]
             match medium["type"]:
                 case "photo" | "image":
-                    if method == "vxtwitter":
-                        url = f"{url}:orig"
-                    queue.push_file(url)
+                    match method:
+                        case "fxtwitter":
+                            urls = (url, url.rpartition("?")[0])
+                        case "vxtwitter":
+                            urls = (f"{url}:orig", url)
+                    queue.push_file(*urls)
                 case "gif":
                     base = url.rpartition("/")[2].rpartition(".")[0]
                     filename = f"{base}.mp4"
