@@ -53,18 +53,18 @@ class Inkbunny(Site):
         # 1. Author
         queue.author = submission.get("username")
         
+        # Define the link early so it can be used for the Referer header
+        queue.link = f"https://inkbunny.net/s/{submission_id}"
+        
         # 2. Images (Original Size)
-        # The API returns an array of 'files' with 'file_url_full'
         for file in submission.get("files", []):
             if url := file.get("file_url_full"):
-                queue.push_file(url, filename=file.get("file_name"))
+                queue.push_file(
+                    url, 
+                    filename=file.get("file_name"),
+                    headers={"Referer": queue.link}
+                )
             
         # 3. Title
         if title := submission.get("title"):
             queue.push_text(title, bold=True)
-            
-        # 4. Description (Inkbunny API doesn't provide this in this endpoint, 
-        # but you can use keywords or other metadata if needed)
-        # Note: Your raw JSON did not contain a 'description' field.
-            
-        queue.link = f"https://inkbunny.net/s/{submission_id}"
