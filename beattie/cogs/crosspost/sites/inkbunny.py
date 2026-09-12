@@ -11,7 +11,11 @@ if TYPE_CHECKING:
 
 class Inkbunny(Site):
     name = "inkbunny"
-    pattern = re.compile(r"https?://(?:www\.)?inkbunny\.net/(?:s/(\d+)|gallery/.*submissions/(\d+))")
+    
+    pattern = re.compile(
+        r"https?://(?:www\.)?inkbunny\.net/"
+        r"(?:s/(\d+)|gallery/.*submissions/(\d+)|submissionview\.php\?id=(\d+))(?:-p\d+-)?(?:#.*)?"
+    )
 
     def __init__(self, cog):
         super().__init__(cog)
@@ -25,12 +29,20 @@ class Inkbunny(Site):
         except FileNotFoundError:
             return
 
+        if hasattr(self, "cog") and hasattr(self.cog, "bot") and hasattr(self.cog.bot, "extra"):
+            if sid := self.cog.bot.extra.get("crosspost_inkbunny_sid"):
+                self.sid = sid
+                return
+
         url = "https://inkbunny.net/api_login.php"
         async with self.get(url, method="POST", params=self.login) as resp:
             data = resp.json()
             if "sid" not in data:
                 raise RuntimeError("Inkbunny login failed")
             self.sid = data["sid"]
+            
+            if hasattr(self, "cog") and hasattr(self.cog, "bot") and hasattr(self.cog.bot, "extra"):
+                self.cog.bot.extra["crosspost_inkbunny_sid"] = self.sid
 
     async def handler(
         self, 
@@ -43,20 +55,29 @@ class Inkbunny(Site):
             return
 
         api_url = "https://inkbunny.net/api_submissions.php"
-        params = {"sid": self.sid, "submission_ids": submission_id}
+        
+        params = {
+            "sid": self.sid, 
+            "submission_ids": submission_id,
+            "show_description": "yes"
+        }
         
         async with self.get(api_url, params=params) as resp:
             data = resp.json()
             
-        submission = data.get("submissions", [{}])[0]
+        submissions = data.get("submissions")
+        if not submissions:
+            queue.push_text("Post not found. It may be private.", quote=False, force=True)
+            return
+            
+        submission = submissions[0]
         
         # 1. Author
         queue.author = submission.get("username")
         
-        # Define the link early so it can be used for the Referer header
         queue.link = f"https://inkbunny.net/s/{submission_id}"
         
-        # 2. Images (Original Size)
+        # 2. Images
         for file in submission.get("files", []):
             if url := file.get("file_url_full"):
                 queue.push_file(
@@ -68,3 +89,9 @@ class Inkbunny(Site):
         # 3. Title
         if title := submission.get("title"):
             queue.push_text(title, bold=True)
+            
+        # 4. Description
+        if description := submission.get("description"):
+            description = description.strip()
+            if description:
+                queue.push_text(description, escape=False)
