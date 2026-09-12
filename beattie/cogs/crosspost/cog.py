@@ -28,6 +28,7 @@ from beattie.cogs.crosspost.flaresolverr import FlareSolverr
 from beattie.utils.checks import is_owner_or
 from beattie.utils.contextmanagers import get
 from beattie.utils.etc import GB, URL_EXPR, display_bytes, spoiler_spans
+from beattie.utils.http import make_session
 from beattie.utils.type_hints import GuildMessageable
 
 from .context import CrosspostContext
@@ -48,9 +49,12 @@ from .translator import (
 )
 
 try:
-    from beattie.utils.contextmanagers import ResponseError
+    from beattie.utils.exceptions import ResponseError
 except ImportError:
-    ResponseError = Exception
+    try:
+        from beattie.utils.contextmanagers import ResponseError
+    except ImportError:
+        ResponseError = Exception
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -99,8 +103,15 @@ EMPTY_DOWNLOAD_RETRIES = 2
 
 
 class ProxyGet(get):
-    def __init__(self, cog: Crosspost, *urls, use_proxy: bool = False, **kwargs):
-        super().__init__(cog.session, *urls, **kwargs)
+    def __init__(
+        self,
+        cog: Crosspost,
+        *urls: str,
+        session: httpx.AsyncClient | None = None,
+        use_proxy: bool = False,
+        **kwargs: Any,
+    ):
+        super().__init__(session or cog.session, *urls, **kwargs)
         self.cog = cog
         self.use_proxy = use_proxy
 
@@ -108,13 +119,13 @@ class ProxyGet(get):
         url = self.urls[self.index]
         kwargs = self.kwargs.copy()
         proxy_info = None
-        
+
         if self.use_proxy and self.cog.proxies:
             p = random.choice(self.cog.proxies)
             if p["type"] == "smartproxy":
                 s = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
                 proxy_info = f"http://{p['user']}-session-{s}:{p['password']}@{p['endpoint']}"
-        
+
         kwargs.pop("proxies", None)
 
         if proxy_info:
@@ -286,7 +297,7 @@ class Crosspost(Cog):
 
     async def cog_load(self):
         if not hasattr(self, "session"):
-            self.session = httpx.AsyncClient(follow_redirects=True, timeout=None)
+            self.session = make_session()
             self.bot.extra["crosspost_session"] = self.session
 
         await self.db.async_init()
@@ -324,7 +335,14 @@ class Crosspost(Cog):
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0)"
                 " Gecko/20100101 Firefox/141.0",
             }
-        return ProxyGet(self, *urls, method=method, use_proxy=use_proxy, **kwargs)
+        return ProxyGet(
+            self,
+            *urls,
+            method=method,
+            session=session,
+            use_proxy=use_proxy,
+            **kwargs,
+        )
 
     def flaresolverr(self) -> FlareSolverr:
         if self.fs_solver_url is None or self.fs_proxy_url is None:
@@ -1073,4 +1091,3 @@ translate text, or a language name or code to translate text into that language.
     @commands.command(aliases=["_"])
     async def nopost(self, ctx: BContext, *, _: str = ""):
         """Ignore links in the following message."""
-
