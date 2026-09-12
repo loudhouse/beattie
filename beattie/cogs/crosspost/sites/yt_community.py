@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from ..queue import FragmentQueue
 
 
-YT_SCRIPT_SELECTOR = ".//script[contains(text(),'responseContext')]"
+YT_SCRIPT_SELECTOR = """.//script[contains(text(),'"responseContext"')]"""
 
 
 class YTCommunity(Site):
@@ -28,7 +28,7 @@ class YTCommunity(Site):
     async def handler(self, _ctx: CrosspostContext, queue: FragmentQueue, post_id: str):
         link = f"https://youtube.com/post/{post_id}"
 
-        async with self.get(link, use_browser_ua=True) as resp:
+        async with self.cog.get(link, use_browser_ua=True) as resp:
             root = html.document_fromstring(resp.content, self.cog.parser)
 
         if not (script := root.xpath(YT_SCRIPT_SELECTOR)):
@@ -64,7 +64,7 @@ class YTCommunity(Site):
             img: str = max(thumbs, key=lambda t: t["width"])["url"]
 
             ext = None
-            async with self.get(
+            async with self.cog.get(
                 img,
                 headers={"Range": "bytes=30-33"},
                 use_browser_ua=True,
