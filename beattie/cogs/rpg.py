@@ -15,6 +15,7 @@ from discord.ext.commands import Cog
 
 from beattie.utils.converters import SUITS, SuitConverter
 from beattie.utils.genesys import die_names, genesysroller
+from beattie.utils.godsong import generate_godsong_audio
 
 if TYPE_CHECKING:
     from collections.abc import Collection
@@ -373,6 +374,47 @@ class RPG(Cog):
 
         words = random.choices(wordlist, k=32)
         await ctx.send(" ".join(words))
+
+    @commands.command()
+    async def godsong(self, ctx: BContext, *args: str):
+        """Generate a 4-part (AA BB) TempleOS GodSong melody.
+
+        Optional arguments: simple, normal, complex, rests, 6/8, octave=1..7"""
+        complexity = 1
+        rests = False
+        six_eight = False
+        octave = 4
+
+        for arg in args:
+            low = arg.lower()
+            if low == "simple":
+                complexity = 0
+            elif low == "normal":
+                complexity = 1
+            elif low == "complex":
+                complexity = 2
+            elif low in ("rest", "rests"):
+                rests = True
+            elif low in ("6/8", "six_eight", "sixeight"):
+                six_eight = True
+            elif low.startswith("octave="):
+                try:
+                    octave = max(1, min(7, int(low.partition("=")[2])))
+                except ValueError:
+                    pass
+
+        async with ctx.typing():
+            notation, audio_io, filename = await generate_godsong_audio(
+                complexity=complexity,
+                rests=rests,
+                six_eight=six_eight,
+                octave=octave,
+            )
+
+        await ctx.send(
+            f'`Play("{notation}");`',
+            file=discord.File(audio_io, filename=filename),
+        )
 
 
 def roller(
