@@ -15,6 +15,7 @@ from discord.ext.commands import Cog
 
 from beattie.utils.converters import SUITS, SuitConverter
 from beattie.utils.genesys import die_names, genesysroller
+from beattie.utils.goddoodle import generate_goddoodle_image
 from beattie.utils.godsong import generate_godsong_audio
 
 if TYPE_CHECKING:
@@ -415,6 +416,37 @@ class RPG(Cog):
             f'`Play("{notation}");`',
             file=discord.File(audio_io, filename=filename),
         )
+
+    @commands.command(aliases=["doodle"])
+    async def goddoodle(self, ctx: BContext, *args: str):
+        """Generate a 640x480 16-color TempleOS GodDoodle sprite.
+
+        Optional arguments: raw (keeps red stencil lines), smooth=0..9, or a hex seed."""
+        smooth = 3
+        hex_seed = None
+
+        for arg in args:
+            low = arg.lower()
+            if low in ("raw", "lines"):
+                smooth = 0
+            elif low.startswith("smooth="):
+                try:
+                    smooth = max(0, min(9, int(low.partition("=")[2])))
+                except ValueError:
+                    pass
+            elif low.startswith("hex="):
+                hex_seed = arg.partition("=")[2]
+            else:
+                hex_seed = arg
+
+        async with ctx.typing():
+            image_io = await asyncio.to_thread(
+                generate_goddoodle_image,
+                smooth=smooth,
+                hex_seed=hex_seed,
+            )
+
+        await ctx.send(file=discord.File(image_io, filename="goddoodle.png"))
 
 
 def roller(
