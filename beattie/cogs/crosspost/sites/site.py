@@ -46,4 +46,4 @@ class Site(ABC):
         pass
 
     def get(self, *urls: str, **kwargs: Any):
-        return self.cog.get(*urls, site=self.name, **kwargs)
+        return self.get(*urls, site=self.name, **kwargs)

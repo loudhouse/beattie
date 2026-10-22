@@ -41,7 +41,7 @@ class Mousepad(Site):
         queue: FragmentQueue,
         link: str,
     ):
-        async with self.cog.get(link, headers=self.headers) as resp:
+        async with self.get(link, headers=self.headers) as resp:
             root = html.document_fromstring(resp.content, self.cog.parser)
 
         queue.author = root.xpath(AUTHOR_SELECTOR)[0].text

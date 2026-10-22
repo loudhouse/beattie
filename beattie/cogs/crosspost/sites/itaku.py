@@ -27,7 +27,7 @@ class Itaku(Site):
         queue: FragmentQueue,
         image_id: str,
     ):
-        async with self.cog.get(
+        async with self.get(
             f"https://itaku.ee/api/galleries/images/{image_id}",
             headers={
                 "Accept": "application/json",

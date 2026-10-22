@@ -116,7 +116,7 @@ class Pixiv(Site):
             while True:
                 wait = 1
                 try:
-                    async with self.cog.get(
+                    async with self.get(
                         url,
                         method="POST",
                         data=data,

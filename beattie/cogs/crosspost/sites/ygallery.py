@@ -33,7 +33,7 @@ class YGallery(Site):
 
         link = f"https://old.y-gallery.net/view/{gal_id}/"
 
-        async with self.cog.get(
+        async with self.get(
             link,
             headers=self.headers,
             use_browser_ua=True,
