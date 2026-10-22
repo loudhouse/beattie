@@ -27,7 +27,7 @@ class Itaku(Site):
         queue: FragmentQueue,
         image_id: str,
     ):
-        async with self.get(
+        async with self.cog.get(
             f"https://itaku.ee/api/galleries/images/{image_id}",
             headers={
                 "Accept": "application/json",
@@ -35,7 +35,10 @@ class Itaku(Site):
         ) as resp:
             post: Response = resp.json()
 
-        url = post.get("image_xl")
+        if video := post.get("video"):
+            url = video["video"]
+        else:
+            url = post.get("image_xl")
 
         if url is None:
             url = post["image"]

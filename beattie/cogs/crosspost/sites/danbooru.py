@@ -4,12 +4,11 @@ import re
 from base64 import b64encode
 from typing import TYPE_CHECKING, TypedDict
 
-import toml
+from beattie.utils.aioutils import aload
 
 from .site import Site
 
 if TYPE_CHECKING:
-    from ..cog import Crosspost
     from ..context import CrosspostContext
     from ..queue import FragmentQueue
 
@@ -33,11 +32,10 @@ class Danbooru(Site):
 
     headers: dict[str, str]
 
-    def __init__(self, cog: Crosspost):
-        super().__init__(cog)
-
-        with open("config/crosspost/danbooru.toml") as fp:
-            data: Config = toml.load(fp)  # pyright: ignore[reportAssignmentType]
+    async def load(self):
+        data: Config = await aload(
+            "config/crosspost/danbooru.toml",
+        )  # pyright: ignore[reportAssignmentType]
 
         key = data["api_key"]
         user = data["user"]
@@ -46,7 +44,7 @@ class Danbooru(Site):
 
     async def handler(self, _ctx: CrosspostContext, queue: FragmentQueue, post_id: str):
         api_url = f"https://danbooru.donmai.us/posts/{post_id}.json"
-        async with self.get(api_url, headers=self.headers) as resp:
+        async with self.cog.get(api_url, headers=self.headers) as resp:
             post: Response = resp.json()
 
         queue.author = post["tag_string_artist"]
@@ -55,7 +53,7 @@ class Danbooru(Site):
 
         queue.push_file(post["file_url"])
 
-        async with self.get(
+        async with self.cog.get(
             f"https://danbooru.donmai.us/posts/{post_id}/artist_commentary.json",
             headers=self.headers,
         ) as resp:

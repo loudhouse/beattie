@@ -41,11 +41,14 @@ class Imgur(Site):
 
     def __init__(self, cog: Crosspost):
         super().__init__(cog)
-        with open("config/crosspost/imgur.toml") as fp:
-            data = toml.load(fp)
-
-        client_id = data["id"]
-        self.headers = {"Authorization": f"Client-ID {client_id}"}
+        try:
+            with open("config/crosspost/imgur.toml") as fp:
+                data = toml.load(fp)
+        except FileNotFoundError:
+            self.headers = {}
+        else:
+            client_id = data["id"]
+            self.headers = {"Authorization": f"Client-ID {client_id}"}
 
     async def handler(
         self,
@@ -57,7 +60,7 @@ class Imgur(Site):
         is_album = bool(fragment)
         target = "album" if is_album else "image"
 
-        async with self.get(
+        async with self.cog.get(
             f"https://api.imgur.com/3/{target}/{album_id}",
             headers=self.headers,
         ) as resp:

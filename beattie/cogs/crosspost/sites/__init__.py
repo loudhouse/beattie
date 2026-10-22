@@ -6,7 +6,6 @@ from .derpibooru import Derpibooru
 from .e621 import E621
 from .exhentai import Exhentai
 from .fanbox import Fanbox
-from .fourchan import FourChan
 from .furaffinity import FurAffinity
 from .gelbooru import Gelbooru
 from .hentaiera import HentaiEra
@@ -17,6 +16,7 @@ from .inkbunny import Inkbunny
 from .itaku import Itaku
 from .lofter import Lofter
 from .mastodon import Mastodon
+from .mousepad import Mousepad
 from .nhentai import Nhentai
 from .paheal import Paheal
 from .pillowfort import Pillowfort
@@ -39,7 +39,6 @@ SITES: list[type[Site]] = [
     E621,
     Exhentai,
     Fanbox,
-    FourChan,
     FurAffinity,
     Gelbooru,
     HentaiEra,
@@ -50,6 +49,7 @@ SITES: list[type[Site]] = [
     Itaku,
     Lofter,
     Mastodon,
+    Mousepad,
     Nhentai,
     Paheal,
     Pillowfort,

@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, TypedDict
 from .site import Site
 
 if TYPE_CHECKING:
-
     from ..context import CrosspostContext
     from ..queue import FragmentQueue
 
@@ -36,7 +35,7 @@ class Hitomi(Site):
     concurrent = False
 
     async def load(self) -> None:
-        async with self.get(GG_JS) as resp:
+        async with self.cog.get(GG_JS) as resp:
             text = resp.text
 
         gg_map: dict[int, int] = {}
@@ -73,7 +72,7 @@ class Hitomi(Site):
         gallery_id: str,
     ):
         url = f"https://ltn.{NETLOC}/galleries/{gallery_id}.js"
-        async with self.get(url) as resp:
+        async with self.cog.get(url) as resp:
             text = resp.text
         data: Response = json.loads(text.rpartition("=")[2])
 

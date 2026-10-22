@@ -425,6 +425,7 @@ class Crosspost(Cog):
         ranges = None
         for step in steps:
             if isinstance(step, PostFlags):
+                force = True
                 settings = copy.copy(settings)
                 if r := step.pages:
                     ranges = r

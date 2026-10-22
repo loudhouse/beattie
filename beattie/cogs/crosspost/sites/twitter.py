@@ -21,7 +21,7 @@ class Twitter(Site):
     name = "twitter"
     pattern = re.compile(
         r"https?://(?:(?:www|mobile|m)\.)?(?:(?:.x|zz)?tw[ix]tter|(?:fix(?:up|v)|"
-        r"girlcock|stupidpenis|skibidi|cunny|mpreg|peepeepoopoodumdumtwitter)?x"
+        r"girlcock|stupidpenis|skibidi|cunny|mpreg|peepeepoopoodumdumtwitter|yiff)?x"
         r"(?:cancel)?)(?:vx)?\.(?:com|org)/[^\s/]+/status/(\d+)",
     )
 
@@ -128,9 +128,9 @@ class Twitter(Site):
                     case "vxtwitter":
                         qname = quote["user_screen_name"]
                 if qtext:
-                    qtext = f" — *{qtext}*"
+                    qtext = f" \N{EM DASH} *{qtext}*"
                 queue.push_text(
-                    f"\N{BRAILLE PATTERN BLANK}↳ @{qname}{qtext}",
+                    f"\N{BRAILLE PATTERN BLANK}\N{DOWNWARDS ARROW WITH TIP RIGHTWARDS} @{qname}{qtext}",
                     escape=False,
                 )
                 queue.push_text(text)

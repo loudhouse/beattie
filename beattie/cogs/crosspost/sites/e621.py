@@ -45,20 +45,23 @@ class E621(Site):
     def __init__(self, cog: Crosspost):
         super().__init__(cog)
 
-        with open("config/crosspost/e621.toml") as fp:
-            data: Config = toml.load(fp)  # pyright: ignore[reportAssignmentType]
-
-        key = data["api_key"]
-        user = data["user"]
-        auth_slug = b64encode(f"{user}:{key}".encode()).decode()
-        self.headers = {"Authorization": f"Basic {auth_slug}"}
+        try:
+            with open("config/crosspost/e621.toml") as fp:
+                data: Config = toml.load(fp)  # pyright: ignore[reportAssignmentType]
+        except FileNotFoundError:
+            self.headers = {}
+        else:
+            key = data["api_key"]
+            user = data["user"]
+            auth_slug = b64encode(f"{user}:{key}".encode()).decode()
+            self.headers = {"Authorization": f"Basic {auth_slug}"}
 
     async def handler(self, _ctx: CrosspostContext, queue: FragmentQueue, post_id: str):
         if not post_id.isnumeric():
             post_id = f"{int(post_id, 32)}"
         params = {"tags": f"id:{post_id}"}
         api_url = "https://e621.net/posts.json"
-        async with self.get(api_url, params=params, headers=self.headers) as resp:
+        async with self.cog.get(api_url, params=params, headers=self.headers) as resp:
             data: Response = resp.json()
         try:
             post = data["posts"][0]

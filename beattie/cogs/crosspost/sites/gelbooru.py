@@ -35,8 +35,11 @@ class Gelbooru(Site):
 
     def __init__(self, cog: Crosspost):
         super().__init__(cog)
-        with open("config/crosspost/gelbooru.toml") as fp:
-            self.gelbooru_params = toml.load(fp)
+        try:
+            with open("config/crosspost/gelbooru.toml") as fp:
+                self.gelbooru_params = toml.load(fp)
+        except FileNotFoundError:
+            self.gelbooru_params = {}
 
     async def handler(self, _ctx: CrosspostContext, queue: FragmentQueue, link: str):
         params = {**API_PARAMS, **self.gelbooru_params}
@@ -50,7 +53,7 @@ class Gelbooru(Site):
             "s": "tag",
             "names": post["tags"],
         }
-        async with self.get(GELBOORU_API_URL, params=tag_params) as resp:
+        async with self.cog.get(GELBOORU_API_URL, params=tag_params) as resp:
             data = resp.json()
 
         tags = data["tag"]
@@ -62,7 +65,7 @@ class Gelbooru(Site):
         params["s"] = "note"
         del params["json"]
         params["post_id"] = params.pop("id")
-        async with self.get(GELBOORU_API_URL, params=params) as resp:
+        async with self.cog.get(GELBOORU_API_URL, params=params) as resp:
             root = etree.fromstring(resp.content, self.cog.xml_parser)
 
         notes = list(root)

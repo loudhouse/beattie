@@ -4,14 +4,12 @@ import re
 from html import unescape as html_unescape
 from typing import TYPE_CHECKING, TypedDict
 
-import toml
+from beattie.utils.aioutils import aload
 
 from ..booru import API_PARAMS, get_booru_post
 from .site import Site
 
 if TYPE_CHECKING:
-    from beattie.cogs.crosspost.cog import Crosspost
-
     from ..context import CrosspostContext
     from ..queue import FragmentQueue
 
@@ -28,11 +26,10 @@ class Rule34(Site):
     pattern = re.compile(r"https?://rule34\.xxx/index\.php\?(?:\w+=[^&]+&?){2,}")
     auth: Config
 
-    def __init__(self, cog: Crosspost):
-        super().__init__(cog)
-
-        with open("config/crosspost/rule34.toml") as fp:
-            self.auth = toml.load(fp)  # pyright: ignore[reportAttributeAccessIssue]
+    async def load(self):
+        self.auth = await aload(
+            "config/crosspost/rule34.toml",
+        )  # pyright: ignore[reportAttributeAccessIssue]
 
     async def handler(self, _ctx: CrosspostContext, queue: FragmentQueue, link: str):
         params = {**API_PARAMS, **self.auth}

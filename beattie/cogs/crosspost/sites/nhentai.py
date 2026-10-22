@@ -4,12 +4,11 @@ import re
 from itertools import cycle
 from typing import TYPE_CHECKING, TypedDict
 
-import toml
+from beattie.utils.aioutils import aload
 
 from .site import Site
 
 if TYPE_CHECKING:
-    from beattie.cogs.crosspost.cog import Crosspost
 
     from ..context import CrosspostContext
     from ..queue import FragmentQueue
@@ -37,24 +36,19 @@ class Nhentai(Site):
     pattern = re.compile(r"https?://(?:www\.)?nhentai\.net/g/(\d+)")
     image_servers: list[str]
 
-    def __init__(self, cog: Crosspost):
-        super().__init__(cog)
-        with open("config/crosspost/nhentai.toml") as fp:
-            data = toml.load(fp)
-
-        key = data["api_key"]
+    async def load(self):
+        auth = await aload("config/crosspost/nhentai.toml")
+        key = auth["api_key"]
         self.headers = {
             "Authorization": f"Key {key}",
             "Accept": "application/json",
         }
-
-    async def load(self):
-        async with self.get(API_FMT.format("cdn")) as resp:
+        async with self.cog.get(API_FMT.format("cdn")) as resp:
             data: Cdn = resp.json()
         self.image_servers = data["image_servers"]
 
     async def handler(self, _ctx: CrosspostContext, queue: FragmentQueue, gal_id: str):
-        async with self.get(API_FMT.format(f"galleries/{gal_id}")) as resp:
+        async with self.cog.get(API_FMT.format(f"galleries/{gal_id}")) as resp:
             data: Response = resp.json()
 
         servers = cycle(self.image_servers)
