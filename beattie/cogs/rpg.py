@@ -51,12 +51,22 @@ class RPG(Cog):
             gun_materials = [stripped for line in fp if (stripped := line.strip())]
         with open("data/gun/quirks.txt") as fp:
             gun_quirks = [stripped for line in fp if (stripped := line.strip())]
-            
+
         try:
             with open("data/Happy.TXT", encoding="utf-8") as fp:
-                self.god_words = [stripped for line in fp if (stripped := line.strip())]
+                self.god_words_happy = [
+                    stripped for line in fp if (stripped := line.strip())
+                ]
         except FileNotFoundError:
-            self.god_words = []
+            self.god_words_happy = []
+
+        try:
+            with open("data/Temple.TXT", encoding="utf-8") as fp:
+                self.god_words_temple = [
+                    stripped for line in fp if (stripped := line.strip())
+                ]
+        except FileNotFoundError:
+            self.god_words_temple = []
 
         self.sooth_cards = list(sooth_data.values())
         self.gun_objects = gun_objects
@@ -348,13 +358,20 @@ class RPG(Cog):
         )
 
     @commands.command(aliases=["godsays"])
-    async def godspeak(self, ctx: BContext):
-        """Consult God's oracle."""
-        if not self.god_words:
-            await ctx.send("Happy.TXT wordlist is missing or empty.")
+    async def godspeak(self, ctx: BContext, mode: str = "happy"):
+        """Consult God's oracle. Pass 'temple' to use the original TempleOS list."""
+        if mode.lower() == "temple":
+            wordlist = self.god_words_temple
+            filename = "Temple.TXT"
+        else:
+            wordlist = self.god_words_happy
+            filename = "Happy.TXT"
+
+        if not wordlist:
+            await ctx.send(f"{filename} wordlist is missing or empty.")
             return
 
-        words = random.choices(self.god_words, k=32)
+        words = random.choices(wordlist, k=32)
         await ctx.send(" ".join(words))
 
 
