@@ -57,4 +57,4 @@ You can remove your stored data directly from Discord:
 - One-time reminders are deleted from `reminder` as soon as they fire. To remove a pending or recurring reminder, run `remind list` and then `remind delete <ID>`.
 - Run `timezone unset` to delete your row from the `timezone` table.
 - Server administrators can run `crosspost clear` to delete `crosspost` rows for a specific channel, category, or the entire server.
-- If you have left a server or want any remaining database records for your user ID or server ID deleted manually, join https://discord.gg/YJKgCeMDy and ask the bot owner. If the Discord invite has expired, please create a Github issue and be careful not to include any personal information, as Github issues are public.
+- If you have left a server or want any remaining database records for your user ID or server ID deleted manually, join https://discord.gg/zG849bNYqU and ask the bot owner. If the Discord invite has expired, please create a Github issue and be careful not to include any personal information, as Github issues are public.
