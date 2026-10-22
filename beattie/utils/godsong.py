@@ -197,7 +197,7 @@ def synthesize_godsong_wav(
     octave: int = 4,
     beat_sec: float = 0.5,
     sample_rate: int = 44100,
-    amplitude: int = 6000,
+    amplitude: int = 1200,
 ) -> tuple[str, bytes]:
     """Generates full AA BB GodSong notation and raw WAV bytes in memory."""
     st1, ev1 = god_song_str(
@@ -219,6 +219,8 @@ def synthesize_godsong_wav(
     full_events = ev1 + ev1 + ev2 + ev2
 
     pcm_samples = bytearray()
+    ramp_samples = int(sample_rate * 0.003)  # 3ms anti-click fade
+
     for freq, dur in full_events:
         total_samples = int(sample_rate * dur)
         gap_samples = min(int(sample_rate * 0.01), total_samples // 4)
@@ -230,7 +232,14 @@ def synthesize_godsong_wav(
             period = sample_rate / freq
             half_period = period / 2.0
             for i in range(tone_samples):
-                val = amplitude if (i % period) < half_period else -amplitude
+                env = 1.0
+                if i < ramp_samples:
+                    env = i / ramp_samples
+                elif tone_samples - i <= ramp_samples:
+                    env = (tone_samples - i) / ramp_samples
+
+                cur_amp = int(amplitude * env)
+                val = cur_amp if (i % period) < half_period else -cur_amp
                 pcm_samples.extend(struct.pack("<h", val))
             pcm_samples.extend(b"\x00\x00" * gap_samples)
 
@@ -272,6 +281,8 @@ async def generate_godsong_audio(
             "wav",
             "-i",
             "pipe:0",
+            "-af",
+            "lowpass=f=5000,volume=1.0",
             "-codec:a",
             "libmp3lame",
             "-ac",
