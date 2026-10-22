@@ -3,7 +3,7 @@
 Effective date: October 22, 2026  
 Bot name: Beattie (Wexlercord Bot)  
 Source code: https://github.com/loudhouse/beattie  
-Support: https://discord.gg/YJKgCeMDy  
+Support: https://discord.gg/zG849bNYqU  
 
 This policy explains what data Beattie reads, stores in PostgreSQL, holds in memory, and sends to external services.
 
