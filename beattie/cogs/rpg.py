@@ -51,6 +51,13 @@ class RPG(Cog):
             gun_materials = [stripped for line in fp if (stripped := line.strip())]
         with open("data/gun/quirks.txt") as fp:
             gun_quirks = [stripped for line in fp if (stripped := line.strip())]
+            
+        try:
+            with open("data/Happy.TXT", encoding="utf-8") as fp:
+                self.god_words = [stripped for line in fp if (stripped := line.strip())]
+        except FileNotFoundError:
+            self.god_words = []
+
         self.sooth_cards = list(sooth_data.values())
         self.gun_objects = gun_objects
         self.gun_materials = gun_materials
@@ -339,6 +346,16 @@ class RPG(Cog):
             f"made of {random.choice(self.gun_materials)} "
             f"which {random.choice(self.gun_quirks)}",
         )
+
+    @commands.command(aliases=["godsays"])
+    async def godspeak(self, ctx: BContext):
+        """Consult God's oracle."""
+        if not self.god_words:
+            await ctx.send("Happy.TXT wordlist is missing or empty.")
+            return
+
+        words = random.choices(self.god_words, k=32)
+        await ctx.send(" ".join(words))
 
 
 def roller(
