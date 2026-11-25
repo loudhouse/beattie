@@ -1,8 +1,21 @@
 blacklist = []
 
-[whitelist]
+["pain.moe"]
+token = ""
 
+[whitelist]
+"baraag.net" = "mastodon"
+"misskey.io" = "misskey"
+"aethy.com" = "mastodon"
+"pawoo.net" = "mastodon"
+"shota.house" = "cherrypick"
+"mesmerized.online" = "mastodon"
+"pain.moe" = "mastodon"
 
 [rewrite]
 "pnet." = "pawoo.net"
 "p.net" = "pawoo.net"
+"pmoe." = "pain.moe"
+"p.moe" = "pain.moe"
+"bnet." = "baraag.net"
+"b.net" = "baraag.net"
